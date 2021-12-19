@@ -1,0 +1,185 @@
+blob-lake:
+  config: |
+    tracer:
+      jaeger:
+        agent_address: jaeger-agent:6831
+        service_name: blob-lake
+        sampler_type: const
+    cache_resources:
+      - label: sequence
+        memory:
+          init_values:
+            count: 0
+    input:
+      label: drip
+      generate:
+        mapping: |
+          root = {
+            "meta": {
+              "id": uuid_v4(),
+              "created": timestamp_unix_nano(),
+              "sequence": 0,
+              "pipes": []
+              },
+            "message": "test"
+          }
+        interval: "1s"
+    pipeline:
+      processors:
+        - branch:
+            processors:
+              - cache:
+                  resource: sequence
+                  operator: get
+                  key: count
+            result_map: 'root.meta.sequence = this'
+        - bloblang: |
+            root = this
+            root.meta.sequence = this.meta.sequence + 1
+        - cache:
+            resource: sequence
+            operator: set
+            key: count
+            value: '${! json("meta.sequence") }'
+    output:
+      label: splash
+      http_client:
+        url: http://{{ .Release.Name }}-blob-pipe-1/pipe
+        verb: POST
+        headers:
+          content-type: application/json
+        timeout: 5s
+        retry_period: 1s
+        max_retry_backoff: 30s
+        retries: 10
+        batch_as_multipart: false
+        max_in_flight: 1
+
+
+blob-pipe-1:
+  config: |
+    tracer:
+      jaeger:
+        agent_address: jaeger-agent:6831
+        service_name: blob-pipe-1
+        sampler_type: const
+    input:
+      label: pipe_in
+      http_server:
+        address: ""
+        path: /pipe
+        allowed_verbs:
+          - POST
+        timeout: 5s
+    pipeline:
+      processors:
+        - bloblang: |
+            root = this
+            root.meta.pipes = this.meta.pipes.append("blob-pipe-1")
+        - sleep:
+            duration: '${! ( random_int(timestamp_unix_nano()) % 100 ) + 200 }ms' #sleep between 200ms and 300ms
+    output:
+      label: pipe_out
+      http_client:
+        url: http://{{ .Release.Name }}-blob-pipe-2/pipe
+        verb: POST
+        headers:
+          content-type: application/json
+        timeout: 5s
+        retry_period: 1s
+        max_retry_backoff: 30s
+        retries: 10
+        batch_as_multipart: false
+        max_in_flight: 1
+
+blob-pipe-2:
+  config: |
+    tracer:
+      jaeger:
+        agent_address: jaeger-agent:6831
+        service_name: blob-pipe-2
+        sampler_type: const
+    input:
+      label: pipe_in
+      http_server:
+        address: ""
+        path: /pipe
+        allowed_verbs:
+          - POST
+        timeout: 5s
+    pipeline:
+      processors:
+        - bloblang: |
+            root = this
+            root.meta.pipes = this.meta.pipes.append("blob-pipe-2")
+        - sleep:
+            duration: '${! ( random_int(timestamp_unix_nano()) % 10 ) + 20 }ms' #sleep between 20ms and 30ms
+    output:
+      label: pipe_out
+      http_client:
+        url: http://{{ .Release.Name }}-blob-pipe-3/pipe
+        verb: POST
+        headers:
+          content-type: application/json
+        timeout: 5s
+        retry_period: 1s
+        max_retry_backoff: 30s
+        retries: 10
+        batch_as_multipart: false
+        max_in_flight: 1
+
+blob-pipe-3:
+  config: |
+    tracer:
+      jaeger:
+        agent_address: jaeger-agent:6831
+        service_name: blob-pipe-3
+        sampler_type: const
+    input:
+      label: pipe_in
+      http_server:
+        address: ""
+        path: /pipe
+        allowed_verbs:
+          - POST
+        timeout: 5s
+    pipeline:
+      processors:
+        - bloblang: |
+            root = this
+            root.meta.pipes = this.meta.pipes.append("blob-pipe-3")
+        - sleep:
+            duration: '${! ( random_int(timestamp_unix_nano()) % 450 ) + 50 }ms' #sleep between 50ms and 500ms
+    output:
+      label: pipe_out
+      http_client:
+        url: http://{{ .Release.Name }}-blob-pipe-4/pipe
+        verb: POST
+        headers:
+          content-type: application/json
+        timeout: 5s
+        retry_period: 1s
+        max_retry_backoff: 30s
+        retries: 10
+        batch_as_multipart: false
+        max_in_flight: 1
+
+blob-pipe-4:
+  config: |
+    tracer:
+      jaeger:
+        agent_address: jaeger-agent:6831
+        service_name: blob-pipe-4
+        sampler_type: const
+    input:
+      label: pipe_in
+      http_server:
+        address: ""
+        path: /pipe
+        allowed_verbs:
+          - POST
+        timeout: 5s
+    output:
+      label: pipe_end
+      stdout:
+        codec: lines

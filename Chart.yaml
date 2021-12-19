@@ -1,0 +1,27 @@
+apiVersion: v2
+appVersion: "1.0"
+description: Benthos test pipeline for tracing
+name: blob-pipeline
+version: 0.0.1
+type: application
+dependencies:
+  - alias: blob-lake
+    name: benthos
+    version: 0.3.0
+    repository: https://difabion.github.io/benthos-helm-chart/
+  - alias: blob-pipe-1
+    name: benthos
+    version: 0.3.0
+    repository: https://difabion.github.io/benthos-helm-chart/
+  - alias: blob-pipe-2
+    name: benthos
+    version: 0.3.0
+    repository: https://difabion.github.io/benthos-helm-chart/
+  - alias: blob-pipe-3
+    name: benthos
+    version: 0.3.0
+    repository: https://difabion.github.io/benthos-helm-chart/
+  - alias: blob-pipe-4
+    name: benthos
+    version: 0.3.0
+    repository: https://difabion.github.io/benthos-helm-chart/
